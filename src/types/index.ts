@@ -5,6 +5,7 @@ export interface LandContract {
   처리결과: string
   이용목적: string
   건물명?: string
+  수집일자?: string
 }
 
 export interface AddressGroup {

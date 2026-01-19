@@ -34,6 +34,18 @@ function formatDate(d: number | string | undefined): string {
   return s.slice(2, 4) + '.' + s.slice(4, 6) + '.' + s.slice(6, 8)
 }
 
+function getTodayString(): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}${month}${day}`
+}
+
+function isNewData(item: LandContract, latestCollectedDate: string): boolean {
+  return item['수집일자'] === latestCollectedDate
+}
+
 export default function Home() {
   const [allData, setAllData] = useState<LandContract[]>([])
   const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null)
@@ -53,6 +65,21 @@ export default function Home() {
         setLoading(false)
       })
   }, [])
+
+  // 가장 최근 수집일자 찾기
+  const latestCollectedDate = useMemo(() => {
+    const dates = allData
+      .map((d) => d['수집일자'])
+      .filter((d): d is string => !!d)
+    if (dates.length === 0) return ''
+    return dates.reduce((max, d) => (d > max ? d : max), dates[0])
+  }, [allData])
+
+  // 신규 데이터 (가장 최근 수집일자 기준)
+  const newData = useMemo(() => {
+    if (!latestCollectedDate) return []
+    return allData.filter((d) => d['수집일자'] === latestCollectedDate)
+  }, [allData, latestCollectedDate])
 
   const summary = useMemo(() => {
     const total = allData.length
@@ -82,7 +109,7 @@ export default function Home() {
   }, [currentDistrictData])
 
   const addressGroups = useMemo(() => {
-    const groups: Record<string, AddressGroup> = {}
+    const groups: Record<string, AddressGroup & { hasNew: boolean }> = {}
     currentDistrictData.forEach((d) => {
       const addr = d['주소']?.trim() || '-'
       if (!groups[addr]) {
@@ -92,6 +119,7 @@ export default function Home() {
           latestDate: '',
           items: [],
           buildingName: d['건물명'] || '',
+          hasNew: false,
         }
       }
       groups[addr].count++
@@ -100,9 +128,10 @@ export default function Home() {
       const date = String(d['허가일자'])
       if (date > groups[addr].latestDate) groups[addr].latestDate = date
       if (d['건물명'] && !groups[addr].buildingName) groups[addr].buildingName = d['건물명']
+      if (isNewData(d, latestCollectedDate)) groups[addr].hasNew = true
     })
     return Object.entries(groups).sort((a, b) => b[1].count - a[1].count)
-  }, [currentDistrictData])
+  }, [currentDistrictData, latestCollectedDate])
 
   const monthlyCounts = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -127,6 +156,11 @@ export default function Home() {
         <h1 className="text-3xl font-bold text-gray-800">서울시 토지거래허가 현황</h1>
         <p className="text-gray-600 mt-2">
           2024.10.15 ~ 현재 | 총 <span className="font-bold text-blue-600">{summary.total.toLocaleString()}</span>건
+          {newData.length > 0 && (
+            <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-600 rounded text-sm">
+              오늘 +{newData.length}건
+            </span>
+          )}
         </p>
       </header>
 
@@ -151,6 +185,69 @@ export default function Home() {
           <p className="text-xl font-bold text-purple-600">{summary.topDistrict}</p>
         </div>
       </div>
+
+      {/* 신규 데이터 섹션 */}
+      {newData.length > 0 && (
+        <div className="bg-white rounded-lg shadow mb-6 border-l-4 border-red-500">
+          <div className="p-4 border-b flex justify-between items-center">
+            <h2 className="text-lg font-semibold">
+              신규 데이터
+              <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-600 rounded text-sm font-normal">
+                {newData.length}건
+              </span>
+            </h2>
+            <span className="text-sm text-gray-500">
+              수집일: {formatDate(latestCollectedDate)}
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-3 py-2 text-left whitespace-nowrap">No</th>
+                  <th className="px-3 py-2 text-left">자치구</th>
+                  <th className="px-3 py-2 text-left">주소</th>
+                  <th className="px-3 py-2 text-left">건물명</th>
+                  <th className="px-3 py-2 text-left">허가일</th>
+                  <th className="px-3 py-2 text-left">결과</th>
+                  <th className="px-3 py-2 text-left">목적</th>
+                </tr>
+              </thead>
+              <tbody>
+                {newData
+                  .sort((a, b) => String(b['허가일자']).localeCompare(String(a['허가일자'])))
+                  .slice(0, 50)
+                  .map((d, i) => (
+                    <tr key={i} className={`border-b hover:bg-gray-50 ${d['건물명'] ? 'bg-yellow-50' : ''}`}>
+                      <td className="px-3 py-2 text-gray-400">{i + 1}</td>
+                      <td className="px-3 py-2">{d['자치구']}</td>
+                      <td className="px-3 py-2">{d['주소'] || '-'}</td>
+                      <td className={`px-3 py-2 ${d['건물명'] ? 'text-blue-600 font-medium' : 'text-gray-300'}`}>
+                        {d['건물명'] || '-'}
+                      </td>
+                      <td className="px-3 py-2">{formatDate(d['허가일자'])}</td>
+                      <td className="px-3 py-2">
+                        <span
+                          className={`px-2 py-0.5 rounded text-xs ${
+                            d['처리결과'] === '허가' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                          }`}
+                        >
+                          {d['처리결과'] || '-'}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-gray-600">{d['이용목적'] || '-'}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+            {newData.length > 50 && (
+              <div className="p-3 text-center text-gray-500 text-sm">
+                외 {newData.length - 50}건 더...
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 차트 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -289,7 +386,7 @@ export default function Home() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-3 py-2 text-left w-12">순위</th>
+                  <th className="px-3 py-2 text-left whitespace-nowrap w-14">순위</th>
                   <th className="px-3 py-2 text-left">주소</th>
                   <th className="px-3 py-2 text-left">건물명</th>
                   <th className="px-3 py-2 text-right w-20">거래건수</th>
@@ -317,7 +414,12 @@ export default function Home() {
                         }
                       }}
                     >
-                      <td className="px-3 py-2 text-gray-400">{i + 1}</td>
+                      <td className="px-3 py-2 text-gray-400 whitespace-nowrap">
+                        {i + 1}
+                        {data.hasNew && (
+                          <span className="ml-1 px-1 py-0.5 bg-red-500 text-white text-xs rounded">신규</span>
+                        )}
+                      </td>
                       <td className="px-3 py-2">
                         {addr}
                         {data.count > 1 && (
@@ -354,7 +456,7 @@ export default function Home() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-3 py-2 text-left">No</th>
+                  <th className="px-3 py-2 text-left whitespace-nowrap">No</th>
                   <th className="px-3 py-2 text-left">주소</th>
                   <th className="px-3 py-2 text-left">건물명</th>
                   <th className="px-3 py-2 text-left">허가일</th>
@@ -374,7 +476,12 @@ export default function Home() {
                     .sort((a, b) => String(b['허가일자']).localeCompare(String(a['허가일자'])))
                     .map((d, i) => (
                       <tr key={i} className={`border-b hover:bg-gray-50 ${d['건물명'] ? 'bg-yellow-50' : ''}`}>
-                        <td className="px-3 py-2 text-gray-400">{i + 1}</td>
+                        <td className="px-3 py-2 text-gray-400 whitespace-nowrap">
+                          {i + 1}
+                          {isNewData(d, latestCollectedDate) && (
+                            <span className="ml-1 px-1 py-0.5 bg-red-500 text-white text-xs rounded">신규</span>
+                          )}
+                        </td>
                         <td className="px-3 py-2">{d['주소'] || '-'}</td>
                         <td className={`px-3 py-2 ${d['건물명'] ? 'text-blue-600 font-medium' : 'text-gray-300'}`}>
                           {d['건물명'] || '-'}
@@ -435,7 +542,12 @@ export default function Home() {
                     .sort((a, b) => String(b['허가일자']).localeCompare(String(a['허가일자'])))
                     .map((d, i) => (
                       <tr key={i} className="border-b">
-                        <td className="px-3 py-2 text-gray-400">{i + 1}</td>
+                        <td className="px-3 py-2 text-gray-400">
+                          {i + 1}
+                          {isNewData(d, latestCollectedDate) && (
+                            <span className="ml-1 px-1 py-0.5 bg-red-500 text-white text-xs rounded">신규</span>
+                          )}
+                        </td>
                         <td className="px-3 py-2">{formatDate(d['허가일자'])}</td>
                         <td className="px-3 py-2">
                           <span

@@ -170,8 +170,11 @@ def collect_data(start_date, end_date, failed_log):
 
     return all_data
 
-def normalize_data(raw_data):
+def normalize_data(raw_data, collected_date=None):
     """원시 데이터를 정규화된 형식으로 변환"""
+    if collected_date is None:
+        collected_date = datetime.now().strftime("%Y%m%d")
+
     column_mapping = {
         'ADDRESS': '주소',
         'SGG_NM': '자치구',
@@ -204,6 +207,8 @@ def normalize_data(raw_data):
         for key in item:
             if key in column_mapping.values():
                 new_item[key] = item[key]
+        # 수집일자 추가
+        new_item['수집일자'] = collected_date
         normalized.append(new_item)
 
     return normalized
