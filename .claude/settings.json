@@ -1,0 +1,36 @@
+{
+  "projectName": "toheoje-dashboard",
+  "description": "서울시 토지거래허가 현황 대시보드",
+  "language": "ko",
+  "primaryLanguages": ["typescript", "python"],
+  "frameworks": ["nextjs", "react", "tailwindcss"],
+  "conventions": {
+    "codeStyle": "typescript-strict",
+    "naming": {
+      "components": "PascalCase",
+      "functions": "camelCase",
+      "files": "kebab-case",
+      "dataFields": "korean"
+    },
+    "imports": {
+      "order": ["react", "next", "external", "internal", "types"]
+    }
+  },
+  "paths": {
+    "source": "src",
+    "components": "src/components",
+    "pages": "src/app",
+    "types": "src/types",
+    "scripts": "scripts",
+    "data": "public/data"
+  },
+  "testing": {
+    "framework": null,
+    "coverage": false
+  },
+  "deployment": {
+    "platform": "vercel",
+    "ci": "github-actions",
+    "branch": "main"
+  }
+}
