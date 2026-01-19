@@ -81,10 +81,39 @@ export default function robots(): MetadataRoute.Robots {
 
 ## 5. 구현 체크리스트
 
-- [ ] layout.tsx에 Metadata 설정
-- [ ] Open Graph 이미지 생성 (1200x630)
-- [ ] sitemap.ts 생성
-- [ ] robots.ts 생성
-- [ ] JSON-LD 구조화 데이터 추가
-- [ ] Google Search Console 등록
-- [ ] Naver Search Advisor 등록
+- [x] layout.tsx에 Metadata 설정 ✅ 완료
+- [x] sitemap.ts 생성 ✅ 완료
+- [x] robots.ts 생성 ✅ 완료
+- [x] JSON-LD 구조화 데이터 추가 ✅ 완료
+- [x] llms.txt 생성 (LLM 검색용) ✅ 완료
+- [ ] Open Graph 이미지 생성 (1200x630) - 선택사항
+- [ ] Google Search Console 등록 - **사용자 작업 필요**
+- [ ] Naver Search Advisor 등록 - **사용자 작업 필요**
+
+## 6. 검색엔진 등록 방법
+
+### Google Search Console
+1. https://search.google.com/search-console 접속
+2. 속성 추가 > URL 접두어 > `https://toheoje-dashboard.vercel.app`
+3. HTML 태그 방식으로 소유권 인증
+4. 인증 메타 태그를 layout.tsx에 추가 (Claude에게 요청)
+5. 사이트맵 제출: `https://toheoje-dashboard.vercel.app/sitemap.xml`
+
+### Naver Search Advisor
+1. https://searchadvisor.naver.com 접속
+2. 사이트 등록 > `https://toheoje-dashboard.vercel.app`
+3. HTML 태그 방식으로 소유권 인증
+4. 인증 메타 태그를 layout.tsx에 추가 (Claude에게 요청)
+5. 사이트맵 제출
+
+## 7. 커스텀 도메인 (예정)
+
+> ⚠️ 도메인 변경 시 아래 파일들의 URL 수정 필요
+
+- [ ] 도메인 구매 (가비아 등)
+- [ ] Vercel에 도메인 연결
+- [ ] 코드 URL 변경 필요 파일:
+  - `src/app/layout.tsx` - siteUrl 변수
+  - `src/app/sitemap.ts` - url
+  - `src/app/robots.ts` - sitemap URL
+- [ ] 검색엔진 등록은 도메인 확정 후 진행
