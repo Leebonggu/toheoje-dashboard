@@ -1,0 +1,54 @@
+name: Daily Data Update
+
+on:
+  schedule:
+    # 매일 KST 09:00 (UTC 00:00) 실행
+    - cron: '0 0 * * *'
+  workflow_dispatch: # 수동 실행 허용
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r scripts/requirements.txt
+
+      - name: Collect data
+        run: python scripts/collect_data.py
+
+      - name: Add building names
+        env:
+          KAKAO_API_KEY: ${{ secrets.KAKAO_API_KEY }}
+        run: python scripts/add_building_names.py
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          git diff --quiet public/data/ || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add public/data/
+          git commit -m "chore: update land contract data $(date +'%Y-%m-%d')"
+          git push
+
+      - name: Check for failures
+        if: always()
+        run: |
+          if [ -f "public/data/failed_requests.json" ]; then
+            echo "::warning::Some requests failed. Check failed_requests.json"
+            cat public/data/failed_requests.json
+          fi
