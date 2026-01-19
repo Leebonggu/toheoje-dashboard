@@ -84,6 +84,8 @@ export default function Home() {
   const summary = useMemo(() => {
     const total = allData.length
     const approved = allData.filter((d) => d['처리결과'] === '허가').length
+    const cancelled = allData.filter((d) => d['처리결과'] === '취소' || d['처리결과'] === '취하').length
+    const rejected = allData.filter((d) => d['처리결과'] === '불허가' || d['처리결과'] === '반려').length
     const residential = allData.filter((d) => d['이용목적'] === '주거용').length
     const districtCounts: Record<string, number> = {}
     allData.forEach((d) => {
@@ -91,7 +93,7 @@ export default function Home() {
     })
     const sorted = Object.entries(districtCounts).sort((a, b) => b[1] - a[1])
     const topDistrict = sorted[0]?.[0] || '-'
-    return { total, approved, residential, topDistrict, districtCounts, sortedDistricts: sorted }
+    return { total, approved, cancelled, rejected, residential, topDistrict, districtCounts, sortedDistricts: sorted }
   }, [allData])
 
   const currentDistrictData = useMemo(() => {
@@ -165,16 +167,22 @@ export default function Home() {
       </header>
 
       {/* 요약 카드 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         <div className="bg-white rounded-lg shadow p-4">
-          <p className="text-gray-500 text-sm">총 거래</p>
+          <p className="text-gray-500 text-sm">총 신청</p>
           <p className="text-xl font-bold">{summary.total.toLocaleString()}건</p>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
-          <p className="text-gray-500 text-sm">허가율</p>
-          <p className="text-xl font-bold text-green-600">
-            {summary.total > 0 ? ((summary.approved / summary.total) * 100).toFixed(1) : 0}%
-          </p>
+          <p className="text-gray-500 text-sm">허가</p>
+          <p className="text-xl font-bold text-green-600">{summary.approved.toLocaleString()}건</p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <p className="text-gray-500 text-sm">취소/취하</p>
+          <p className="text-xl font-bold text-orange-500">{summary.cancelled.toLocaleString()}건</p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <p className="text-gray-500 text-sm">불허가/반려</p>
+          <p className="text-xl font-bold text-red-500">{summary.rejected.toLocaleString()}건</p>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
           <p className="text-gray-500 text-sm">주거용</p>
